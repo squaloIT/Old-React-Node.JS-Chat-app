@@ -20,7 +20,6 @@ const newToken = user => {
 };
 
 const register = async (req, res) => {
-  console.log(req.body);
   const { email, password, username } = req.body;
   if (!email || !password || !username) {
     return res.status(401).json({ message: "Unesite sifru i email" });
@@ -36,7 +35,7 @@ const register = async (req, res) => {
 
   try {
     console.log("user");
-    var user = await User.create({ email, password, username });
+    var user = await User.create({ email, password, username, friends: [] });
     console.log(user);
   } catch (e) {
     console.error(e);
@@ -47,23 +46,52 @@ const register = async (req, res) => {
 
   res.status(200).json({
     message: "User registered",
-    payload: {
-      user: {
-        username: user.username
-        // friends
-      },
-      userId: user._id,
-      token: token
+    user: {
+      username: user.username,
+      friendsIds: [],
+      authData: {
+        userId: user._id,
+        idToken: token,
+        expiresIn: 2000
+      }
     }
   });
-
-  // isLoggedIn: false,
-  // user: {
-  //   userID: null,
-  //   username: null,
-  //   friends: []
-  // },
-  // token: null
 };
 
-module.exports = { register };
+const login = async (req, res) => {
+  console.log(req.body);
+
+  const { email, password } = req.body;
+
+  if (!checkEmail(email)) {
+    return res.status(401).json({ message: "Unesite odgovarajuci email" });
+  } else if (!checkPass(password)) {
+    return res.status(401).json({ message: "Unesite odgovarajucu sifru" });
+  }
+
+  try {
+    console.log("user");
+    var user = await User.find({ email, password }).exec();
+    console.log(user);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send(e);
+  }
+
+  const token = newToken(user);
+
+  res.status(200).json({
+    message: "User logged in",
+    user: {
+      username: user.username,
+      friendsIds: [],
+      authData: {
+        userId: user._id,
+        idToken: token,
+        expiresIn: 2000
+      }
+    }
+  });
+};
+
+module.exports = { register, login };
